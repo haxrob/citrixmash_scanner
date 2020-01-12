@@ -1,9 +1,11 @@
-# CVE-2019-19781 citrixmash concurrent scanner
+# CVE-2019-19781 citrixmash scanner
 
 A tool to scan for Citrix appliances that are vulnerable to CVE-2019-19781.
 The software specifically does not attempt to compromise/exploit hosts. Only a `HEAD` request is sent to verify if a host is vulnerable. 
 
-The tool is capable of accepting either enumerating a specified network range or accepting a list of targets.
+The tool is capable of accepting either enumerating a specified network range or accepting a list of targets specified in a text file.
+
+Requests are concurrent with a default of 20 workers/threads. To speed up the scanning, increase workers (`-w`) or reduce the HTTP timeout (`-t`)
 
 ## Installation 
 ```

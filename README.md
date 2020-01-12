@@ -5,6 +5,11 @@ The software specifically does not attempt to compromise/exploit hosts. Only a `
 
 The tool is capable of accepting either enumerating a specified network range or accepting a list of targets.
 
+## Installation 
+```
+$ go get -u github.com/x1sec/citrixmash_scanner
+```
+
 ## Usage
 ```
 Citrix CVE-2019-19781 Scanner
@@ -19,8 +24,6 @@ Author: robert@x1sec.com
   -v	Verbose
   -w int
     	Number of concurrent workers (default 20)
-
-ERROR: Must specify either an input file [-f] or specify a network range [-n]
 ```
 Note: Hosts specififed with the `-f` switch which do not have http or https prefixed will by default use https.
 

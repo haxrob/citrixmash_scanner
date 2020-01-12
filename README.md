@@ -28,7 +28,14 @@ Author: robert@x1sec.com
   -w int
     	Number of concurrent workers (default 20)
 ```
-Note: Hosts specififed with the `-f` switch which do not have http or https prefixed will by default use https.
+Note: Hosts listed in the text file referenced with the `-f` switch which do not have http or https prefixed will by default use https. Hosts can be mixed, e.g.
+```
+# cat targets.txt
+http://target1.com
+https://target2.org
+192.168.0.2
+http://10.0.0.4
+```
 
 ### Example:
 Verbose, 50 workers, 1 second timeout for each requests:

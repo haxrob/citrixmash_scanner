@@ -84,9 +84,11 @@ func main() {
 	// Verbose info go routine
 	done := make(chan bool)
 	ticker := time.NewTicker(time.Second * infoInterval)
-
 	// status information if verbose flag is set
 	if verbose {
+		// Verbose info go routine
+		done := make(chan bool)
+		ticker := time.NewTicker(time.Second * infoInterval)
 		go func() {
 			var prevReqCount float64
 			for {
@@ -109,7 +111,7 @@ func main() {
 
 		}()
 	}
-	
+
 	// Options 
 	if networkRange != "" {
 		for _, ip := range netExpand(networkRange) {
@@ -140,7 +142,10 @@ func main() {
 
 	wg.Wait()
 	ticker.Stop()
-	done <- true
+	if verbose {
+		done <- true
+	}
+	
 	fmt.Printf("\n[\033[92m+\033[0m] Done! %d host(s) vulnerable\n", atomic.LoadUint64(&vulnCount))
 }
 

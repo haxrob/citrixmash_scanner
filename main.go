@@ -26,7 +26,7 @@ import (
 
 var verbose bool
 
-const infoInterval = 5
+const infoInterval = 15
 
 func main() {
 
@@ -53,7 +53,8 @@ func main() {
 	flag.Parse()
 
 	fmt.Println("\nCitrix CVE-2019-19781 Scanner")
-	fmt.Println("Author: robert@x1sec.com\n")
+	fmt.Println("Author: robert@x1sec.com")
+	fmt.Println("Version: 0.2\n")
 
 	if networkRange == "" && hostListFile == "" {
 		flag.PrintDefaults()
@@ -61,9 +62,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	hosts := make(chan string)
 
+	// scanner go routine
+	hosts := make(chan string)
 	var wg sync.WaitGroup
+
 	for i := 0; i < workerCount; i++ {
 		wg.Add(1)
 		go func() {
@@ -78,32 +81,36 @@ func main() {
 		}()
 	}
 
+	// Verbose info go routine
 	done := make(chan bool)
 	ticker := time.NewTicker(time.Second * infoInterval)
 
 	// status information if verbose flag is set
-	go func() {
-		var prevReqCount float64
-		for {
+	if verbose {
+		go func() {
+			var prevReqCount float64
+			for {
 
-			select {
-			case <-done:
-				return
-			case <-ticker.C:
-				requests := atomic.LoadUint64(&requestCount)
-				var delta float64
-				delta = (float64(requests) - prevReqCount) / infoInterval
+				select {
+				case <-done:
+					return
+				case <-ticker.C:
+					requests := atomic.LoadUint64(&requestCount)
+					var delta float64
+					delta = (float64(requests) - prevReqCount) / infoInterval
 
-				if verbose {
-					fmt.Printf("[\033[93m*\033[0m] INFO: speed: %0.0f req/sec, sent: %d/%d reqs, vulnerable: %d \n", delta, requests, len(hostsList), atomic.LoadUint64(&vulnCount))
+					
+						fmt.Printf("[\033[93m*\033[0m] INFO: speed: %0.0f req/sec, sent: %d/%d reqs, vulnerable: %d \n", delta, requests, len(hostsList), atomic.LoadUint64(&vulnCount))
+					
+					prevReqCount = float64(requests)
 				}
-				prevReqCount = float64(requests)
+
 			}
 
-		}
-
-	}()
-
+		}()
+	}
+	
+	// Options 
 	if networkRange != "" {
 		for _, ip := range netExpand(networkRange) {
 			hostsList = append(hostsList, ip)
@@ -125,7 +132,7 @@ func main() {
 		}
 	}
 
-	fmt.Printf("[\033[92m*\033[0m] Testing %d hosts with %d concurrent workers ..\n\n", len(hostsList), workerCount)
+	fmt.Printf("[\033[92m+\033[0m] Testing %d hosts with %d concurrent workers ..\n\n", len(hostsList), workerCount)
 	for _, host := range hostsList {
 		hosts <- host
 	}
@@ -134,7 +141,7 @@ func main() {
 	wg.Wait()
 	ticker.Stop()
 	done <- true
-	fmt.Printf("\n[\033[92m*\033[0m] Done! %d host(s) vulnerable\n", atomic.LoadUint64(&vulnCount))
+	fmt.Printf("\n[\033[92m+\033[0m] Done! %d host(s) vulnerable\n", atomic.LoadUint64(&vulnCount))
 }
 
 func formatFix(host *string) {
@@ -146,10 +153,11 @@ func formatFix(host *string) {
 	}
 }
 
+
 func isVulnerable(host string, timeout int) bool {
 
 	to := time.Duration(timeout) * time.Second
-	url := fmt.Sprintf("%svpn/../vpns/empty.html", host)
+	url := fmt.Sprintf("%svpn/../vpns/cfg/smb.conf", host)
 
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -159,23 +167,25 @@ func isVulnerable(host string, timeout int) bool {
 	}
 	client := &http.Client{Transport: tr}
 
-	//resp, err := client.Head(url)
 	req, err := http.NewRequest("HEAD", url, nil)
 	req.Close = true
 	req.Header.Add("User-Agent", "Mozilla/5.0 (Windows NT 6.4; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2225.0 Safari/537.36")
 	resp, err := client.Do(req)
-
+	
 	if err == nil {
+
 		defer resp.Body.Close()
-		if resp.StatusCode == 200 {
+
+		if resp.StatusCode == 200 && resp.ContentLength == 83 {
 			fmt.Printf("[\033[91m!\033[0m] %s is \033[91mvulnerable\033[0m\n", host)
 			return true
 		}
+		if resp.StatusCode == 403 {
+			fmt.Printf("[\033[92m-\033[0m] %s might be a patched server\n", host)
+			return false
+		}
 
-		/*contentlength := resp.ContentLength
-		fmt.Println(contentlength)*/
-
-	}
+	} 
 	return false
 
 }

@@ -37,6 +37,8 @@ http://10.0.0.4
 ```
 
 ### Example:
-Verbose, 50 workers (`-w`), 1 second timeout (`-t`) per request, scanning subnet (`-n`):
+Options: verbose info (`-v`), 50 workers (`-w`), 1 second timeout (`-t`) per request, scanning subnet (`-n`):
 
 ![](img/example1.png)
+
+*Disclaimer: This tool is intended for legal activities such as penetration testing, bug bounty hunting on authorized assets and to help secure networks. The author holds no responsibility for it's use*

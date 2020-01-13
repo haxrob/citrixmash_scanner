@@ -16,7 +16,6 @@ Alternatively,  Compiled 64-bit executable files for Windows, Mac and Linux are 
 ## Usage
 ```
 Citrix CVE-2019-19781 Scanner
-Author: robert@x1sec.com
 
   -f string
     	File containing list of hosts
@@ -39,16 +38,5 @@ http://10.0.0.4
 
 ### Example:
 Verbose, 50 workers, 1 second timeout for each requests:
-```
-$ ./citrixmash_scanner -w 50 -t 1 -v -n 192.168.10.0/24 
-
-Citrix CVE-2019-19781 Scanner
-Author: robert@x1sec.com
-
-[*] Testing 254 hosts with 50 concurrent workers ..
-
-[!] https://192.168.10.5/ is vulnerable
-[*] INFO: speed: 51 req/sec, sent: 254/254 reqs, vulnerable: 1 
-
-[*] Done! 1 host(s) vulnerable
+![](img/example1.png)
 ```

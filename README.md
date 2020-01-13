@@ -37,6 +37,6 @@ http://10.0.0.4
 ```
 
 ### Example:
-Verbose, 50 workers, 1 second timeout for each requests:
+Verbose, 50 workers (`-w`), 1 second timeout (`-t`) per request, scanning subnet (`-n`):
+
 ![](img/example1.png)
-```

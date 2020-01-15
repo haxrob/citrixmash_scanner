@@ -16,7 +16,9 @@ Alternatively,  Compiled 64-bit executable files for Windows, Mac and Linux are 
 ## Usage
 ```
 Citrix CVE-2019-19781 Scanner
-
+Author: robert@x1sec.com
+Version: 0.3
+  -e	Evade IDS with ASCII encoding (default true)
   -f string
     	File containing list of hosts
   -n string

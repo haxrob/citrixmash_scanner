@@ -94,6 +94,7 @@ func main() {
 		}
 	}
 
+	var hostsListScanner *bufio.Scanner
 
 	// scanner go routine
 	hosts := make(chan string)
@@ -163,35 +164,23 @@ func main() {
 			log.Fatal(err)
 		}
 
-		hostsListScanner := bufio.NewScanner(file)
-		for hostsListScanner.Scan() {
-			host := hostsListScanner.Text()
-
-			// network has been specified in input hosts file
-			if host[len(host)-3] == '/' {
-				addNetwork(host, &hostsList)
-			} else {
-				hostsList = append(hostsList, host)
-			}
-		}
+		hostsListScanner = bufio.NewScanner(file)	
+	}
+	
+	if useStdin == true {
+		hostsListScanner = bufio.NewScanner(os.Stdin)
 	}
 
-	// no network or hosts specified, so read from stdin
-	if useStdin == true {
-
-		stdin := bufio.NewScanner(os.Stdin)
-		for stdin.Scan() {
-			host := stdin.Text()
-
-			// found a network 
-			if host[len(host)-3] == '/' {
-				for _, ip := range netExpand(host) {
-					hosts <- ip
-				}
-			} else {
-				hosts <- host
-			}
-
+	for hostsListScanner.Scan() {
+		host := hostsListScanner.Text()
+		if len(host) < 8 {
+			continue
+		}
+		// network has been specified
+		if host[len(host)-3] == '/' {
+			addNetwork(host, &hostsList)
+		} else {
+			hostsList = append(hostsList, host)
 		}
 	}
 

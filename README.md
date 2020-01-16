@@ -1,7 +1,7 @@
 # CVE-2019-19781 citrixmash scanner
 
 A multithreaded scanner for Citrix appliances that are vulnerable to CVE-2019-19781.
-The scanner does not attempt to compromise/exploit hosts, rather a `HEAD` request triggering the path traversal vulnerability is is used verify if a target is vulnerable. False positives are reduced by verifying the content length header.
+The scanner does not attempt to compromise/exploit hosts, rather a `HEAD` request is used to determine if a target is vulnerable. False positives are reduced by verifying the content length header response.
 
 citrixsmash_scanner is capable of accepting both network ranges and accepting individual hosts. 
 

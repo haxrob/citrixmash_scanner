@@ -48,7 +48,7 @@ http://10.0.0.4
 10.0.20.0/24
 ```
 
-Use the `-o <filename` option to write vulnerable hosts to a text file.
+Use the `-o <filename`> option to write vulnerable hosts to a text file in addition to stdout
 
 ### Example usage:
 Options: verbose info (`-v`), 50 parallel workers (`-w`), 1 second timeout (`-t`), scanning subnet (`-n`) and also including hosts from `target.txt` (`-f`):

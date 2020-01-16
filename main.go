@@ -1,6 +1,8 @@
 /*
-Concurrent scanner for the Citrix CVE-2019-19781
+Scanner for Citrix CVE-2019-19781
 Author: robert@x1sec.com
+        https://twitter.com/x1sec
+
 License: MIT
 
 Disclaimer: The scanner detects a vulnerable host by issuing only a HEAD request in order not to 'exploit' a system.
@@ -35,6 +37,7 @@ func main() {
 
 	var workerCount int
 
+	//atomic writes
 	var requestCount uint64
 	var vulnCount uint64
 
@@ -58,6 +61,9 @@ func main() {
 	var outFilename string
 	flag.StringVar(&outFilename, "o", "", "Write results to text file")
 
+	var userAgent string
+	flag.StringVar(&userAgent, "u", "", "Custom user agent string")
+
 	flag.Parse()
 
 	fmt.Println()
@@ -66,6 +72,11 @@ func main() {
 	fmt.Println("Version: 0.4")
 	fmt.Println()
 
+	if userAgent == "" {
+		userAgent = "Mozilla/5.0 (Windows NT 6.4; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2225.0 Safari/537.36"
+	}
+
+	// -f or -n not specified, will be true
 	useStdin := false
 	if networkRange == "" && hostListFile == "" {
 		fmt.Println("[\033[93m*\033[0m] INFO: Using stdin for input. Use -f or -n to disable.")
@@ -83,6 +94,7 @@ func main() {
 		}
 	}
 
+
 	// scanner go routine
 	hosts := make(chan string)
 	var wg sync.WaitGroup
@@ -96,7 +108,7 @@ func main() {
 			for host := range hosts {
 				atomic.AddUint64(&requestCount, 1)
 				formatFix(&host)
-				if isVulnerable(host, timeout, evasion) {
+				if isVulnerable(host, timeout, evasion, userAgent) {
 					atomic.AddUint64(&vulnCount, 1)
 					if outFile != nil {
 						mu.Lock()
@@ -209,7 +221,7 @@ func formatFix(host *string) {
 	}
 }
 
-func isVulnerable(host string, timeout int, evasion bool) bool {
+func isVulnerable(host string, timeout int, evasion bool, userAgent string) bool {
 
 	to := time.Duration(timeout) * time.Second
 
@@ -234,7 +246,7 @@ func isVulnerable(host string, timeout int, evasion bool) bool {
 
 	req, err := http.NewRequest("HEAD", url, nil)
 	req.Close = true
-	req.Header.Add("User-Agent", "Mozilla/5.0 (Windows NT 6.4; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2225.0 Safari/537.36")
+	req.Header.Add("User-Agent", userAgent)
 	resp, err := client.Do(req)
 
 	if err == nil {

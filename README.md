@@ -23,6 +23,8 @@ $ ./citrixsmash_scanner -h
       Write results to text file
   -t int
       HTTP timeout (seconds) (default 2)
+  -u string
+      Custom user agent string
   -v  Verbose
   -w int
       Number of concurrent workers (default 20)

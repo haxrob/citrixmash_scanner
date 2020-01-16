@@ -1,51 +1,76 @@
 # CVE-2019-19781 citrixmash scanner
 
-A tool to scan for Citrix appliances that are vulnerable to CVE-2019-19781.
-The software specifically does not attempt to compromise/exploit hosts. Only a `HEAD` request is sent to verify if a host is vulnerable. The intended use of this software is for testing your own networks, for use in bug bounties etc.
+A multithreaded scanner for Citrix appliances that are vulnerable to CVE-2019-19781.
+The scanner does not attempt to compromise/exploit hosts, rather a `HEAD` request triggering the path traversal vulnerability is is used verify if a target is vulnerable. False positives are reduced by verifying the content length header.
 
-The tool is capable of accepting a specified network range and accepting a list of target hosts specified in a text file.
-
-Requests are concurrent with a default of 20 workers/threads. To speed up the scanning, increase workers (`-w`) or reduce the HTTP timeout (`-t`)
+citrixsmash_scanner is capable of accepting both network ranges and accepting individual hosts. 
 
 ## Installation 
 ```
 $ go get -u github.com/x1sec/citrixmash_scanner
 ```
-Alternatively,  Compiled 64-bit executable files for Windows, Mac and Linux are available [here](https://github.com/x1sec/citrixmash_scanner/releases/)
+Alternatively, compiled 64-bit executable files for Windows, Mac and Linux are available [here](https://github.com/x1sec/citrixmash_scanner/releases/)
 
 ## Usage
 ```
-Citrix CVE-2019-19781 Scanner
-Author: robert@x1sec.com
-Version: 0.3
-  -e	Evade IDS with ASCII encoding (default true)
+$ ./citrixsmash_scanner -h
+  -e  Evade IDS with ASCII encoding (default true)
   -f string
-    	File containing list of hosts
+      File containing list of hosts
   -n string
-    	Network in CIDR format (e.g. 192.168.0.0/24)
+      Network in CIDR format (e.g. 192.168.0.0/24)
+  -o string
+      Write results to text file
   -t int
-    	HTTP timeout (seconds) (default 3)
-  -v	Verbose
+      HTTP timeout (seconds) (default 2)
+  -v  Verbose
   -w int
-    	Number of concurrent workers (default 20)
+      Number of concurrent workers (default 20)
 ```
-Note: Hosts listed in the text file referenced with the `-f` switch which do not have http or https prefixed will by default use https. Hosts can be mixed, e.g.
+
+Requests are concurrent with a default of 20 workers/threads. To speed up the scanning, increase workers (`-w`) and/or reduce the HTTP timeout (`-t`)
+
+If either the `-n` or `f` parameters are omitted, citrixmash_scanner will accept input from stdin. 
+For example, using subdomain enumeration with [assetfinder](https://github.com/tomnomnom/assetfinder):
 ```
-# cat targets.txt
+$ assetfinder corp.com | ./citrixmash_scanner 
+```
+
+Targets can be mixed (http, https), and include networks in CIDR format. If `http` or `https` is ommitted, then `https` will be used. The following is a valid target list:
+```
+$ cat targets.txt
 http://target1.com
 https://target2.org
 192.168.0.2
 http://10.0.0.4
+10.0.20.0/24
 ```
 
-### Example:
-Options: verbose info (`-v`), 50 workers (`-w`), 1 second timeout (`-t`) per request, scanning subnet (`-n`):
+Use the `-o <filename` option to write vulnerable hosts to a text file.
 
-![](img/example1.png)
+### Example usage:
+Options: verbose info (`-v`), 50 parallel workers (`-w`), 1 second timeout (`-t`), scanning subnet (`-n`) and also including hosts from `target.txt` (`-f`):
+
+```
+$ ./citrixmash_scanner -v -t 1 -w 50 -n 192.168.10.0/24 -f targets.txt 
+
+Citrix CVE-2019-19781 Scanner
+Author: https://twitter.com/x1sec
+Version: 0.4
+
+[+] Testing 255 hosts with 20 concurrent workers ..
+
+[!] https://192.168.10.5/ is vulnerable
+[*] INFO: speed: 7 req/sec, sent: 106/255 reqs, vulnerable: 1
+[!] https://10.10.0.8/ is vulnerable
+
+[+] Done! 2 host(s) vulnerable
+```
 
 ### Changelog:
 | version | date | changes |
 |:---|:---|:---|
+| v0.4 | 16/01/20 | Accept targets from stdin, fixed exit issue with -v option, added -o option |
 | v0.3 | 15/01/20 | Added evasion bypass (credit: [Fireeye](https://www.fireeye.com/blog/products-and-services/2020/01/rough-patch-promise-it-will-be-200-ok.html)  / [@itsreallynick](https://twitter.com/ItsReallyNick)) |
 | v0.2 | 13/01/20 | Check content-length of smb.conf to reduce false positives |
 | v0.1 | 13/01/20 | Initial release |

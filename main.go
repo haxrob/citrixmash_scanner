@@ -22,6 +22,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
 )
 
 var verbose bool
@@ -46,39 +47,62 @@ func main() {
 	flag.StringVar(&hostListFile, "f", "", "File containing list of hosts")
 
 	var timeout int
-	flag.IntVar(&timeout, "t", 3, "HTTP timeout (seconds)")
+	flag.IntVar(&timeout, "t", 2, "HTTP timeout (seconds)")
 
 	flag.BoolVar(&verbose, "v", false, "Verbose")
 
 	//ASCII encoding to evade IDS - credit Nick Carr / @ItsReallyNick
 	var evasion bool
-	flag.BoolVar(&evasion, "e", true, "Evade IDS with ASCII encoding") 
+	flag.BoolVar(&evasion, "e", true, "Evade IDS with ASCII encoding")
+
+	var outFilename string
+	flag.StringVar(&outFilename, "o", "", "Write results to text file")
 
 	flag.Parse()
 
-	fmt.Println("\nCitrix CVE-2019-19781 Scanner")
-	fmt.Println("Author: robert@x1sec.com")
-	fmt.Println("Version: 0.3")
+	fmt.Println()
+	fmt.Println("Citrix CVE-2019-19781 Scanner")
+	fmt.Println("Author: https://twitter.com/x1sec")
+	fmt.Println("Version: 0.4")
+	fmt.Println()
 
+	useStdin := false
 	if networkRange == "" && hostListFile == "" {
-		flag.PrintDefaults()
-		fmt.Println("\nERROR: Must specify either an input file [-f] or specify a network range [-n]\n")
-		os.Exit(1)
+		fmt.Println("[\033[93m*\033[0m] INFO: Using stdin for input. Use -f or -n to disable.")
+		useStdin = true
 	}
 
+	var outFile *os.File
+	var ferr error
+	if outFilename != "" {
+		fmt.Println("[\033[93m*\033[0m] INFO: Writing vulnerable targets to ", outFilename)
+		outFile, ferr = os.Create(outFilename)
+		if ferr != nil {
+			fmt.Println("ERROR: Can't open '" + outFilename +  "'' exiting ...\n")
+			os.Exit(1)
+		}
+	}
 
 	// scanner go routine
 	hosts := make(chan string)
 	var wg sync.WaitGroup
+	var mu sync.Mutex
 
 	for i := 0; i < workerCount; i++ {
 		wg.Add(1)
+
 		go func() {
+
 			for host := range hosts {
 				atomic.AddUint64(&requestCount, 1)
 				formatFix(&host)
 				if isVulnerable(host, timeout, evasion) {
 					atomic.AddUint64(&vulnCount, 1)
+					if outFile != nil {
+						mu.Lock()
+						outFile.WriteString(host + "\n")
+						mu.Unlock()
+					}
 				}
 			}
 			wg.Done()
@@ -87,25 +111,26 @@ func main() {
 
 	// Verbose info go routine
 	done := make(chan bool)
+
 	ticker := time.NewTicker(time.Second * infoInterval)
 	// status information if verbose flag is set
 	if verbose {
 		// Verbose info go routine
-		done := make(chan bool)
-		ticker := time.NewTicker(time.Second * infoInterval)
+
 		go func() {
 			var prevReqCount float64
 			for {
 
 				select {
 				case <-done:
-					return
+					break
+
 				case <-ticker.C:
 					requests := atomic.LoadUint64(&requestCount)
 					var delta float64
 					delta = (float64(requests) - prevReqCount) / infoInterval
 
-						fmt.Printf("[\033[93m*\033[0m] INFO: speed: %0.0f req/sec, sent: %d/%d reqs, vulnerable: %d \n", delta, requests, len(hostsList), atomic.LoadUint64(&vulnCount))
+					fmt.Printf("[\033[93m*\033[0m] INFO: speed: %0.0f req/sec, sent: %d/%d reqs, vulnerable: %d \n", delta, requests, len(hostsList), atomic.LoadUint64(&vulnCount))
 					prevReqCount = float64(requests)
 				}
 
@@ -114,12 +139,9 @@ func main() {
 		}()
 	}
 
-	// Options 
+	// Options
 	if networkRange != "" {
-		for _, ip := range netExpand(networkRange) {
-			hostsList = append(hostsList, ip)
-			//hosts <- ip
-		}
+		addNetwork(networkRange, &hostsList)
 	}
 
 	if hostListFile != "" {
@@ -131,8 +153,33 @@ func main() {
 
 		hostsListScanner := bufio.NewScanner(file)
 		for hostsListScanner.Scan() {
-			hostsList = append(hostsList, hostsListScanner.Text())
-			//hosts <- hostsListScanner.Text()
+			host := hostsListScanner.Text()
+
+			// network has been specified in input hosts file
+			if host[len(host)-3] == '/' {
+				addNetwork(host, &hostsList)
+			} else {
+				hostsList = append(hostsList, host)
+			}
+		}
+	}
+
+	// no network or hosts specified, so read from stdin
+	if useStdin == true {
+
+		stdin := bufio.NewScanner(os.Stdin)
+		for stdin.Scan() {
+			host := stdin.Text()
+
+			// found a network 
+			if host[len(host)-3] == '/' {
+				for _, ip := range netExpand(host) {
+					hosts <- ip
+				}
+			} else {
+				hosts <- host
+			}
+
 		}
 	}
 
@@ -140,15 +187,17 @@ func main() {
 	for _, host := range hostsList {
 		hosts <- host
 	}
+
 	close(hosts)
 
 	wg.Wait()
-	ticker.Stop()
-	if verbose {
-		done <- true
-	}
-	
+
 	fmt.Printf("\n[\033[92m+\033[0m] Done! %d host(s) vulnerable\n", atomic.LoadUint64(&vulnCount))
+	if verbose {
+		ticker.Stop()
+		done <- true
+		
+	}
 }
 
 func formatFix(host *string) {
@@ -159,7 +208,6 @@ func formatFix(host *string) {
 		*host = fmt.Sprintf("%s/", *host)
 	}
 }
-
 
 func isVulnerable(host string, timeout int, evasion bool) bool {
 
@@ -173,9 +221,13 @@ func isVulnerable(host string, timeout int, evasion bool) bool {
 	}
 
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
+		IdleConnTimeout:   time.Second,
+		DisableKeepAlives: true,
 		DialContext: (&net.Dialer{
-			Timeout: to,
+			Timeout:   to,
+			KeepAlive: time.Second,
+			
 		}).DialContext,
 	}
 	client := &http.Client{Transport: tr}
@@ -184,7 +236,7 @@ func isVulnerable(host string, timeout int, evasion bool) bool {
 	req.Close = true
 	req.Header.Add("User-Agent", "Mozilla/5.0 (Windows NT 6.4; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2225.0 Safari/537.36")
 	resp, err := client.Do(req)
-	
+
 	if err == nil {
 
 		defer resp.Body.Close()
@@ -198,9 +250,15 @@ func isVulnerable(host string, timeout int, evasion bool) bool {
 			return false
 		}
 
-	} 
+	}
 	return false
 
+}
+
+func addNetwork(network string, list *[]string) {
+	for _, ip := range netExpand(network) {
+		*list = append(*list, ip)
+	}
 }
 
 func netExpand(network string) []string {

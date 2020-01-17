@@ -38,6 +38,11 @@ For example, using subdomain enumeration with [assetfinder](https://github.com/t
 $ assetfinder corp.com | ./citrixmash_scanner 
 ```
 
+Or for scanning a complete Autonomous System with [xpasn](https://github.com/x1sec/xpasn):
+```
+$ xpasn AS394161 | ./citrixmash_scanner 
+```
+
 Targets can be mixed (http, https), and include networks in CIDR format. If `http` or `https` is ommitted, then `https` will be used. The following is a valid target list:
 ```
 $ cat targets.txt
@@ -48,7 +53,7 @@ http://10.0.0.4
 10.0.20.0/24
 ```
 
-Use the `-o <filename`> option to write vulnerable hosts to a text file in addition to stdout
+Use the `-o <filename`> option to write vulnerable hosts to a text file.
 
 ### Example usage:
 Options: verbose info (`-v`), 50 parallel workers (`-w`), 1 second timeout (`-t`), scanning subnet (`-n`) and also including hosts from `target.txt` (`-f`):
